@@ -79,6 +79,24 @@ metadata."
   (interactive)
   (biblio--selection-forward-bibtex #'ebib-biblio-selection-import-callback))
 
+(defun dnd-handle-one-url-maybe-doi (orig-fn window action url)
+  "Add new entry from dropped DOI or fall back to original function.
+
+When URL is a doi url and it was dropped over ebib window, add
+new entry based on it. Otherwise pass on arguments to
+`dnd-handle-one-url'."
+  (let ((doi-url-prefix-regexp "^https?://\\(dx\\.\\)?doi\\.org/")
+	(doi-regexp "10\\.[0-9]\\{4,9\\}/[-._;()/:A-Z0-9]+$"))
+    (if (and (s-match "^ebib" (symbol-name (buffer-mode (window-buffer window))))
+	     (s-match (concat doi-url-prefix-regexp doi-regexp) url))
+	(progn
+	  (ebib-biblio-import-doi url)
+	  'private)
+      (funcall orig-fn window action url))))
+
+(advice-add 'x-dnd-insert-utf8-text :around #'dnd-handle-one-url-maybe-doi)
+(advice-add 'dnd-handle-one-url :around #'dnd-handle-one-url-maybe-doi)
+
 (provide 'ebib-biblio)
 
 ;;; ebib-biblio.el ends here
