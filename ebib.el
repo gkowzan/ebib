@@ -4866,8 +4866,19 @@ applying the function in `ebib-name-transform-function' to the
 entry key.  The file extension of the original file is retained.
 If prefix ARG is non-nil, do not delete the original file."
   (interactive "P")
+  (ebib--import-file
+   (expand-file-name (read-file-name "File to import: " ebib-import-directory nil t))
+   arg))
+
+(defun ebib--import-file (file-path &optional keep)
+  "Import a file into the database.
+Use file at FILE-PATH, rename it and move it to the first
+directory in `ebib-file-search-dirs'.  The new name is created by
+applying the function in `ebib-name-transform-function' to the
+entry key.  The file extension of the original file is retained.
+If KEEP is non-nil, do not delete the original file."
+  (interactive "P")
   (let* ((key (ebib--get-key-at-point))
-         (file-path (expand-file-name (read-file-name "File to import: " ebib-import-directory nil t)))
          (ext (file-name-extension file-path))
          (new-name (ebib--create-file-name-from-key key ext))
          (dest-dir (file-name-as-directory (car ebib-file-search-dirs)))
@@ -4884,7 +4895,7 @@ If prefix ARG is non-nil, do not delete the original file."
               (setq dest-path (concat (file-name-as-directory (car ebib-file-search-dirs)) new-name)))
           (?o (setq overwrite t)))))
     (copy-file file-path dest-path)
-    (unless arg
+    (unless keep
       (delete-file file-path t))
     (let ((files (ebib-get-field-value "file" key ebib--cur-db 'noerror 'unbraced)))
       (when (or (null files)
