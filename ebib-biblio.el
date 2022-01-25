@@ -42,6 +42,11 @@
 ;; `biblio-selection-mode-map' and bind it to `ebib-biblio-selection-import':
 ;;
 ;; (define-key biblio-selection-mode-map (kbd "e") #'ebib-biblio-selection-import)
+;;
+;; `ebib-biblio-import-zotero' requires a running instance of Zotero translation
+;; server. Refer to [biblio] or [zotero] for details.
+;;
+;; [zotero]: https://github.com/zotero/translation-server
 
 ;;; Code:
 
@@ -52,6 +57,8 @@
 (defvar ebib-index-mode-map)
 (declare-function ebib-read-database "ext:ebib.el" (prompt &optional databases))
 (declare-function ebib-import-entries "ext:ebib.el" (&optional db))
+(declare-function ebib--update-entry-buffer "ext:ebib.el" (&optional match-str))
+(declare-function ebib--goto-entry-in-index "ext:ebib.el" (key))
 
 (defun ebib-biblio-import-doi (doi)
   "Fetch a BibTeX entry from a remote server by its DOI using `biblio.el'.
@@ -63,11 +70,24 @@ The entry is stored in the current database."
 				 (biblio-doi--insert (biblio-format-bibtex result biblio-bibtex-use-autokey)
                                                      (current-buffer))
 				 (when-let ((entry-keys (ebib-import-entries ebib--cur-db)))
-				   (ebib--goto-entry-in-index (car entry-keys))
-				   (ebib--update-index-buffer)
-				   (ebib--update-entry-buffer))))))
+				   (if (ebib--goto-entry-in-index (car entry-keys))
+				       (ebib--update-entry-buffer)))))))
 
 (define-key ebib-index-mode-map "B" #'ebib-biblio-import-doi)
+
+(defun ebib-biblio-import-zotero (url)
+  "Fetch a BibTeX entry by forwarding URL to a Zotero translation server.
+The entry is stored in the current database."
+  (interactive "MURL: ")
+  (biblio-zotero-forward-bibtex url
+				(lambda (result)
+				  (with-temp-buffer
+				    (insert (biblio-format-bibtex result biblio-bibtex-use-autokey) "\n\n")
+				    (when-let ((entry-keys (ebib-import-entries ebib--cur-db)))
+				      (if (ebib--goto-entry-in-index (car entry-keys))
+					  (ebib--update-entry-buffer)))))))
+
+(define-key ebib-index-mode-map "C-B" #'ebib-biblio-import-zotero)
 
 (defun ebib-biblio-selection-import-callback (bibtex _entry)
   "Add a BibTeX entry to the current Ebib database.

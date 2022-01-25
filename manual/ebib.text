@@ -814,7 +814,26 @@ Or with `use-package`:
 
 If you now call `biblio-lookup`, you can use the key [`e`]{.key} (or any other key you choose, of course) in Biblio's selection buffer to import the selected entry into the current Ebib database.
 
-Additionally, loading `ebib-biblio` adds the key [`B`]{.key} to the Ebib index. This key asks you for a DOI and then tries to import the entry that the DOI points to into the current database.
+Additionally, loading `ebib-biblio` adds keys [`B`]{.key} and [`C-B`]{.key} to the Ebib index. [`B`]{.key} asks you for a DOI and then tries to import the entry that the DOI points to into the current database. [`C-B`]{.key} asks you for an URL and tries to ask a Zotero translation server to extract bibliographic data from the location. Ebib then imports the resulting BibTeX record into the current database. For this integration to work, `biblio-zotero-translation-server` has to contain the address of a running Zotero server, which is the localhost by default. The easiest way to run your local instance is to set up [Docker](https://www.docker.com/) and run the server with:
+
+```sh
+docker pull zotero/translation-server
+docker run -d -p 1969:1969 --restart-always --rm --name translation-server zotero/translation-server
+```
+
+The `--restart-always` flag ensures that the server will be started on system boot. You can also enable org-protocol handler and add bookmarklet to your browser, which will forward the address of the current website to Zotero server and try to add BibTeX entry to the current database. The org-protocol handler is enabled by:
+
+```lisp
+(require 'org-protocol-ebib-zotero)
+```
+
+and adding the following bookmark to the browser:
+
+```
+javascript:location.href='org-protocol://ebib-zotero?href=%27+encodeURIComponent(location.href)
+```
+
+Support for org-protocol links also needs to be configured in your operating system.
 
 When fetching entries via Biblio, Ebib checks for duplicates based on the key of the new entry. This will only work reliably if both Ebib and Biblio are configured to automatically generate BibTeX keys. Ebib does this by default (see the option `ebib-autogenerate-keys`), Biblio can be configured to do so by setting the option `biblio-bibtex-use-autokey`.
 
